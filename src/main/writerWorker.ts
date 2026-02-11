@@ -13,7 +13,7 @@ db.exec(`
 
 // Prepared statement
 const insertStmt = db.prepare(`
-  INSERT INTO pos_transactions (
+  INSERT OR REPLACE INTO pos_transactions (
     branch, cslipno, orddate, ordtime,
     cusno, cusname, cusaddr1, cusaddr2, custel, cusfax, cuscont, age,
     chargpct, grschrg, promo_pct, promo_amt, sr_tcust, sr_body, sr_disc,

@@ -75,7 +75,9 @@ export function initDatabase() {
         lastpd TEXT,
         remarks TEXT,
         filler1 TEXT,
-        filler2 TEXT
+        filler2 TEXT,
+
+        UNIQUE(branch, cslipno)
       );
     `)
   }
