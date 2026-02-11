@@ -24,8 +24,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "better-sqlite3": "^12.6.2",
-    "dbffile": "^1.12.0",
-    "node-dbf": "^0.4.0"
+    "dbffile": "^1.12.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
