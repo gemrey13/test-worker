@@ -14,7 +14,7 @@ db.exec(`
 // Prepared statement
 const insertStmt = db.prepare(`
   INSERT OR REPLACE INTO pos_transactions (
-    branch, cslipno, orddate, ordtime,
+    branch, branch_name, cslipno, orddate, ordtime,
     cusno, cusname, cusaddr1, cusaddr2, custel, cusfax, cuscont, age,
     chargpct, grschrg, promo_pct, promo_amt, sr_tcust, sr_body, sr_disc,
     vat, servchrg, othdisc, udisc, bankcharg, totchrg, pdamt, pmtdisc, balance,
@@ -23,7 +23,7 @@ const insertStmt = db.prepare(`
     dis_h, dis_i, dis_j, dis_k, dis_l, dis_vx,
     terms, cardno, cardtyp, lastpd, remarks, filler1, filler2
   ) VALUES (
-    @branch, @cslipno, @orddate, @ordtime,
+    @branch, @branch_name, @cslipno, @orddate, @ordtime,
     @cusno, @cusname, @cusaddr1, @cusaddr2, @custel, @cusfax, @cuscont, @age,
     @chargpct, @grschrg, @promo_pct, @promo_amt, @sr_tcust, @sr_body, @sr_disc,
     @vat, @servchrg, @othdisc, @udisc, @bankcharg, @totchrg, @pdamt, @pmtdisc, @balance,

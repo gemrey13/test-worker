@@ -123,6 +123,20 @@ async function processBranch(branch: string) {
   if (!fs.existsSync(zipPath)) return
 
   const zip = new AdmZip(zipPath)
+
+  let branch_name: string | null = null
+  const sysEntry = zip.getEntries().find((e) => e.entryName.toUpperCase() === 'SYSINFO.DBF')
+  if (sysEntry) {
+    const tmpSysPath = path.join(os.tmpdir(), `pos-import`, `${branch}-SYSINFO.DBF`)
+    fs.writeFileSync(tmpSysPath, sysEntry.getData(ZIP_PASSWORD))
+
+    const sysDbf = await DBFFile.open(tmpSysPath, { readMode: 'loose' })
+    const sysRecords = await sysDbf.readRecords(1) // usually only 1 record
+    if (sysRecords.length) branch_name = sanitizeValue(sysRecords[0].ADDR1)
+
+    fs.unlinkSync(tmpSysPath)
+  }
+
   const entry = zip.getEntries().find((e) => e.entryName.toUpperCase() === 'CHARGES.DBF')
   if (!entry) return
 
@@ -141,7 +155,10 @@ async function processBranch(branch: string) {
 
     for (const row of records) {
       if (!isValidRow(row)) continue
-      batch.push(mapRow(branch, row))
+      batch.push({
+        ...mapRow(branch, row),
+        branch_name // add the branch_name from SYSINFO
+      })
     }
 
     if (batch.length >= batchSize) {
