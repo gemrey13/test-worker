@@ -18,6 +18,7 @@ export function initDatabase() {
       CREATE TABLE IF NOT EXISTS pos_transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         branch TEXT,
+        branch_name TEXT,
 
         cslipno TEXT,
         orddate TEXT,
