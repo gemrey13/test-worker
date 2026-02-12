@@ -5,8 +5,8 @@ import icon from '../../resources/icon.png?asset'
 import path from 'path'
 import { initDatabase } from './db'
 import fs from 'fs'
-import createWorkerReader from './readerWorker?nodeWorker'
-import createWorkerWriter from './writerWorker?nodeWorker'
+import createWorkerReader from './worker/posReaderWorker?nodeWorker'
+import createWorkerWriter from './worker/posWriterWorker?nodeWorker'
 import os from 'os'
 
 function createWindow(): void {
