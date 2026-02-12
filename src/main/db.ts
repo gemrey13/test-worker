@@ -81,6 +81,88 @@ export function initDatabase() {
         UNIQUE(branch, cslipno)
       );
     `)
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS grab_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        merchant_name TEXT,
+        merchant_id TEXT,
+        store_name TEXT,
+        store_id TEXT,
+        updated_on TEXT,
+        created_on TEXT,
+        type TEXT,
+        category TEXT,
+        receiving_account TEXT,
+        subcategory TEXT,
+        status TEXT,
+        transaction_id TEXT,
+        linked_transaction_id TEXT,
+        partner_transaction_id_1 TEXT,
+        partner_transaction_id_2 TEXT,
+        long_order_id TEXT,
+        short_order_id TEXT,
+        booking_id TEXT UNIQUE,
+        order_channel TEXT,
+        order_type TEXT,
+        payment_method TEXT,
+        terminal_id TEXT,
+        channel TEXT,
+        offer_type TEXT,
+
+        grab_fee_percent REAL,
+        points_multiplier REAL,
+        points_issued REAL,
+        settlement_id TEXT,
+        transfer_date TEXT,
+
+        amount REAL,
+        tax_on_order_value REAL,
+        packaging_charge REAL,
+        non_member_fee REAL,
+        service_charge REAL,
+        offer REAL,
+        discount_merchant REAL,
+        delivery_fee_discount REAL,
+        delivery_charge_gos REAL,
+        delivery_charge_merchant REAL,
+        grabexpress_fee REAL,
+        net_sales REAL,
+        net_mdr REAL,
+        tax_on_mdr REAL,
+        grab_fee REAL,
+        marketing_success_fee REAL,
+        delivery_commission REAL,
+        channel_commission REAL,
+        order_commission REAL,
+        grabfood_other_commission REAL,
+        grabkitchen_commission REAL,
+        grabkitchen_other_commission REAL,
+        withholding_tax REAL,
+        total REAL,
+
+        cancellation_reason TEXT,
+        cancelled_by TEXT,
+        reason_for_refund TEXT,
+        description TEXT,
+        incident_group TEXT,
+        incident_alias TEXT,
+        customer_refund_item TEXT,
+        appeal_link TEXT,
+        appeal_status TEXT
+      );
+    `)
+  
+
+    // Enable WAL and performance optimizations
+    db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA synchronous = OFF;
+      PRAGMA cache_size = -100000;
+      PRAGMA temp_store = MEMORY;
+    `)
+
   }
 
   return db

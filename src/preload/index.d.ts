@@ -4,7 +4,8 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api: {
-      startImport: () => Promise<any>
+      startImport: () => Promise<any>;
+      startImportGrab: () => Promise<any>;
     }
   }
 }
