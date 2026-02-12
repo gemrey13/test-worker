@@ -10,6 +10,7 @@ import createPosWorkerWriter from './worker/posWriterWorker?nodeWorker'
 import creategrabWorkerReader from './worker/grabReaderWorker?nodeWorker'
 import creategrabWorkerWriter from './worker/grabWriterWorker?nodeWorker'
 import os from 'os'
+import { testReconciliation } from './reconcile/test'
 
 function createWindow(): void {
   // Create the browser window.
@@ -52,6 +53,10 @@ app.whenReady().then(() => {
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  ipcMain.handle('run-reconciliation', async () => {
+    return testReconciliation()
   })
 
   ipcMain.handle('start-import-grab', async () => {

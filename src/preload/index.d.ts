@@ -6,6 +6,7 @@ declare global {
     api: {
       startImport: () => Promise<any>;
       startImportGrab: () => Promise<any>;
+      runRecon: () => Promise<any>;
     }
   }
 }

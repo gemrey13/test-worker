@@ -5,6 +5,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   startImport: () => ipcRenderer.invoke('start-import'),
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
+  runRecon: () => ipcRenderer.invoke('run-reconciliation'),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
