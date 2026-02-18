@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { BranchMapping, branchMappings } from './branches'
 
 let db: Database.Database
 
@@ -159,5 +160,25 @@ export function initDatabase() {
 
   console.log('[DB] Tables ensured.')
 
+  seedBranchMapping(branchMappings)
+
   return db
+}
+
+function seedBranchMapping(mappings: BranchMapping[]) {
+  const insert = db.prepare(`
+    INSERT INTO branch_mapping (pos_code, pos_name, grab_name)
+    VALUES (?, ?, ?)
+    ON CONFLICT(pos_code) DO UPDATE SET
+      pos_name = excluded.pos_name,
+      grab_name = excluded.grab_name
+  `)
+
+  const insertMany = db.transaction((rows: BranchMapping[]) => {
+    for (const row of rows) {
+      insert.run(row.posCode, row.posName, row.grabName)
+    }
+  })
+
+  insertMany(mappings)
 }
