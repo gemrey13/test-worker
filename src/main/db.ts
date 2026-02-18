@@ -149,6 +149,12 @@ export function initDatabase() {
       appeal_link TEXT,
       appeal_status TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS branch_mapping (
+      pos_code TEXT PRIMARY KEY,
+      pos_name TEXT,
+      grab_name TEXT
+    );
   `)
 
   console.log('[DB] Tables ensured.')
