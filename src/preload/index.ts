@@ -6,6 +6,8 @@ const api = {
   startImport: () => ipcRenderer.invoke('start-import'),
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
+  startImportGrabManual: (arrayBuffer: ArrayBuffer) =>
+    ipcRenderer.invoke('grab:importManual', Buffer.from(arrayBuffer))
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

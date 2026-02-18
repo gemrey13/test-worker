@@ -1,4 +1,4 @@
-import { JSX } from 'react'
+import { JSX, useState } from 'react'
 import * as XLSX from 'xlsx'
 
 export default function App(): JSX.Element {
@@ -12,6 +12,30 @@ export default function App(): JSX.Element {
 }
 
 function Test() {
+  const [grabFile, setGrabFile] = useState<File | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) setGrabFile(files[0])
+  }
+
+  const handleImportGrabManual = async () => {
+    if (!grabFile) return alert('Please select a Grab Excel file first.')
+
+    try {
+      // Get ArrayBuffer from file
+      const arrayBuffer = await grabFile.arrayBuffer()
+
+      // Send raw ArrayBuffer to main process
+      const result = await window.api.startImportGrabManual(arrayBuffer)
+      console.log(result)
+      alert(`Imported ${result.totalInserted} records successfully!`)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to import Grab file')
+    }
+  }
+
   const handleImport = async () => {
     const result = await window.api.startImport()
     console.log(result)
@@ -106,6 +130,14 @@ function Test() {
       <div>
         <h1>Test Recon</h1>
         <button onClick={handleRunRecon}>Export Multi-Sheet Excel</button>
+      </div>
+
+      <div style={{ padding: 20 }}>
+        <h1>GRAB Manual Import</h1>
+        <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} />
+        <button onClick={handleImportGrabManual} disabled={!grabFile} style={{ marginLeft: 10 }}>
+          Import Grab File
+        </button>
       </div>
     </div>
   )

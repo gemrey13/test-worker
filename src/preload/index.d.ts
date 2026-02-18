@@ -7,6 +7,7 @@ declare global {
       startImport: () => Promise<any>;
       startImportGrab: () => Promise<any>;
       runRecon: () => Promise<any>;
+      startImportGrabManual: (buffer: any) => Promise<any>
     }
   }
 }

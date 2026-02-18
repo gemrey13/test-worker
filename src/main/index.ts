@@ -11,6 +11,7 @@ import creategrabWorkerReader from './worker/grabReaderWorker?nodeWorker'
 import creategrabWorkerWriter from './worker/grabWriterWorker?nodeWorker'
 import os from 'os'
 import { testReconciliation } from './reconcile/test'
+import { importGrabManual } from './worker/importGrabManual'
 
 function createWindow(): void {
   // Create the browser window.
@@ -53,6 +54,20 @@ app.whenReady().then(() => {
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  ipcMain.handle('grab:importManual', async (_, buffer: Buffer) => {
+    if (!buffer || buffer.length === 0) throw new Error('No file data provided')
+
+    const tmpFilePath = path.join(app.getPath('temp'), `grab_${Date.now()}.xlsx`)
+    fs.writeFileSync(tmpFilePath, buffer)
+
+    try {
+      const dbPath = path.join(app.getPath('userData'), 'pos.db')
+      return importGrabManual({ dbPath, filePath: tmpFilePath })
+    } finally {
+      fs.unlink(tmpFilePath, () => {})
+    }
   })
 
   ipcMain.handle('run-reconciliation', async () => {
