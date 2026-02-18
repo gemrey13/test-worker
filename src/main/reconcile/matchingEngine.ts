@@ -1,4 +1,6 @@
-import { branchMappings } from "../branches";
+import Database from "better-sqlite3";
+import { app } from "electron";
+import path from "path";
 
 type MatchStatus =
   | "exact_match"
@@ -7,8 +9,8 @@ type MatchStatus =
   | "unmatched";
 
 type MatchResult = {
-  pos?: any;   // full POS row
-  grab?: any;  // full Grab row
+  pos?: any;
+  grab?: any;
   variance: number;
   status: MatchStatus;
 };
@@ -28,13 +30,18 @@ function groupBy<T>(rows: T[], keyGetter: (row: T) => string) {
 }
 
 /**
- * Attempt to map POS branch_name to Grab store_name using branchMappings
+ * Fetch branch mappings from the database and return a lookup function
  */
-function mapPosToGrabStore(posBranch: string): string | null {
-  const mapping = branchMappings.find(
-    (b) => b.posName.toLowerCase().includes(posBranch.toLowerCase()) || b.posCode === posBranch
-  );
-  return mapping?.grabName ?? null;
+export function createBranchMapper(db: Database.Database) {
+  const rows: { pos_code: string; pos_name: string; grab_name: string | null }[] =
+    db.prepare("SELECT pos_code, pos_name, grab_name FROM branch_mapping").all();
+
+  return (posBranch: string): string | null => {
+    const mapping = rows.find(
+      (b) => b.pos_name.toLowerCase().includes(posBranch.toLowerCase()) || b.pos_code === posBranch
+    );
+    return mapping?.grab_name ?? null;
+  };
 }
 
 /**
@@ -46,6 +53,11 @@ export function reconcilePOSvsGrab(
   tolerance: number = 0.01
 ): MatchResult[] {
   const results: MatchResult[] = [];
+
+  const dbPath = path.join(app.getPath('userData'), 'pos.db')
+  const db = new Database(dbPath); // ← this is the key
+  // Use DB-based branch mapper
+  const mapPosToGrabStore = createBranchMapper(db);
 
   // Group POS by normalized branch + date
   const posByBranchDate = groupBy(posRows, (p) => {
@@ -61,9 +73,13 @@ export function reconcilePOSvsGrab(
   for (const [key, posGroup] of posByBranchDate.entries()) {
     const grabGroup = grabByStoreDate.get(key);
     if (!grabGroup) {
-      // No matching Grab transactions for this branch+date
       for (const pos of posGroup) {
-        results.push({ pos, grab: undefined, variance: Number(pos.grschrg), status: "unmatched" });
+        results.push({
+          pos,
+          grab: undefined,
+          variance: Number(pos.grschrg),
+          status: "unmatched",
+        });
       }
       continue;
     }
@@ -98,14 +114,23 @@ export function reconcilePOSvsGrab(
       }
 
       if (!matched) {
-        results.push({ pos, grab: undefined, variance: Number(pos.grschrg), status: "unmatched" });
+        results.push({
+          pos,
+          grab: undefined,
+          variance: Number(pos.grschrg),
+          status: "unmatched",
+        });
       }
     }
 
-    // Any remaining Grab transactions not used
     for (const grab of grabGroup) {
       if (!usedGrab.has(grab.id)) {
-        results.push({ pos: undefined, grab, variance: -Number(grab.amount), status: "unmatched" });
+        results.push({
+          pos: undefined,
+          grab,
+          variance: -Number(grab.amount),
+          status: "unmatched",
+        });
       }
     }
   }
