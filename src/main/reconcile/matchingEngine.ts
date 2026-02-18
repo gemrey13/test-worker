@@ -30,6 +30,34 @@ function groupBy<T>(rows: T[], keyGetter: (row: T) => string) {
 }
 
 /**
+ * Normalize POS cusno for last-pass ID matching
+ */
+function normalizeCusno(cusno?: string): string | null {
+  if (!cusno) return null;
+  return cusno.toUpperCase().replace(/^GF?-?/, "").trim();
+}
+
+/**
+ * Extract possible tokens from Grab for last-pass matching
+ */
+function extractGrabToken(grab: any): string[] {
+  const tokens: string[] = [];
+
+  if (grab.short_order_id) {
+    tokens.push(grab.short_order_id.toUpperCase().trim());
+  }
+
+  if (grab.booking_id) {
+    const cleaned = grab.booking_id.toUpperCase().trim();
+    tokens.push(cleaned.slice(-4));
+    tokens.push(cleaned.slice(-5));
+    tokens.push(cleaned.slice(-6));
+  }
+
+  return tokens;
+}
+
+/**
  * Fetch branch mappings from the database and return a lookup function
  */
 export function createBranchMapper(db: Database.Database) {
@@ -38,7 +66,9 @@ export function createBranchMapper(db: Database.Database) {
 
   return (posBranch: string): string | null => {
     const mapping = rows.find(
-      (b) => b.pos_name.toLowerCase().includes(posBranch.toLowerCase()) || b.pos_code === posBranch
+      (b) =>
+        b.pos_name.toLowerCase().includes(posBranch.toLowerCase()) ||
+        b.pos_code === posBranch
     );
     return mapping?.grab_name ?? null;
   };
@@ -54,9 +84,8 @@ export function reconcilePOSvsGrab(
 ): MatchResult[] {
   const results: MatchResult[] = [];
 
-  const dbPath = path.join(app.getPath('userData'), 'pos.db')
-  const db = new Database(dbPath); // ← this is the key
-  // Use DB-based branch mapper
+  const dbPath = path.join(app.getPath("userData"), "pos.db");
+  const db = new Database(dbPath); // ← open DB
   const mapPosToGrabStore = createBranchMapper(db);
 
   // Group POS by normalized branch + date
@@ -71,23 +100,15 @@ export function reconcilePOSvsGrab(
   });
 
   for (const [key, posGroup] of posByBranchDate.entries()) {
-    const grabGroup = grabByStoreDate.get(key);
-    if (!grabGroup) {
-      for (const pos of posGroup) {
-        results.push({
-          pos,
-          grab: undefined,
-          variance: Number(pos.grschrg),
-          status: "unmatched",
-        });
-      }
-      continue;
-    }
-
-    posGroup.sort((a, b) => Number(b.grschrg) - Number(a.grschrg));
-    grabGroup.sort((a, b) => Number(b.amount) - Number(a.amount));
+    const grabGroup = grabByStoreDate.get(key) || [];
 
     const usedGrab = new Set<number>();
+    const unmatchedPos: any[] = [];
+    const unmatchedGrab: any[] = [];
+
+    // FIRST PASS: branch + date + amount/tolerance
+    posGroup.sort((a, b) => Number(b.grschrg) - Number(a.grschrg));
+    grabGroup.sort((a, b) => Number(b.amount) - Number(a.amount));
 
     for (const pos of posGroup) {
       let matched = false;
@@ -113,7 +134,51 @@ export function reconcilePOSvsGrab(
         }
       }
 
-      if (!matched) {
+      if (!matched) unmatchedPos.push(pos);
+    }
+
+    for (const grab of grabGroup) {
+      if (!usedGrab.has(grab.id)) unmatchedGrab.push(grab);
+    }
+
+    // LAST PASS: POS cusno vs Grab short_order_id / booking_id
+    const remainingGrabByToken = new Map<string, any[]>();
+
+    for (const grab of unmatchedGrab) {
+      const tokens = extractGrabToken(grab);
+      for (const token of tokens) {
+        if (!remainingGrabByToken.has(token)) {
+          remainingGrabByToken.set(token, []);
+        }
+        remainingGrabByToken.get(token)!.push(grab);
+      }
+    }
+
+    for (const pos of unmatchedPos) {
+      const cusToken = normalizeCusno(pos.cusno);
+      if (!cusToken) {
+        results.push({
+          pos,
+          grab: undefined,
+          variance: Number(pos.grschrg),
+          status: "unmatched",
+        });
+        continue;
+      }
+
+      const possibleGrabs = remainingGrabByToken.get(cusToken);
+      if (possibleGrabs && possibleGrabs.length > 0) {
+        const grab = possibleGrabs.shift()!;
+        usedGrab.add(grab.id);
+
+        const variance = Number(pos.grschrg) - Number(grab.amount);
+        results.push({
+          pos,
+          grab,
+          variance,
+          status: variance === 0 ? "exact_match" : "tolerance_match",
+        });
+      } else {
         results.push({
           pos,
           grab: undefined,
@@ -123,7 +188,8 @@ export function reconcilePOSvsGrab(
       }
     }
 
-    for (const grab of grabGroup) {
+    // Any remaining Grab transactions not matched
+    for (const grab of unmatchedGrab) {
       if (!usedGrab.has(grab.id)) {
         results.push({
           pos: undefined,
