@@ -40,7 +40,7 @@ export default function App(): JSX.Element {
         Import POS ZIP
       </button>
       <button onClick={handleImportGrabManual} disabled={loading}>
-        Import GRAB Excel
+        Import GRAB File
       </button>
 
       <p>Status: {status}</p>
