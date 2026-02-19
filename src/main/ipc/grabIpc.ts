@@ -10,7 +10,7 @@ export function registerGrabIpc() {
   ipcMain.handle('grab:importManual', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Select Grab Excel file',
-      properties: ['openFile'],
+      properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }]
     })
 
@@ -18,17 +18,31 @@ export function registerGrabIpc() {
       return { totalInserted: 0, message: 'No GRAB file selected' }
     }
 
-    const filePath = filePaths[0]
+    let totalInserted = 0
+    let messages: string[] = []
 
-    // Optionally copy to temp folder if you need
-    const tmpFilePath = path.join(app.getPath('temp'), `grab_${Date.now()}.xlsx`)
-    fs.copyFileSync(filePath, tmpFilePath)
+    for (const filePath of filePaths) {
+      // Copy to temp folder
+      const tmpFilePath = path.join(
+        app.getPath('temp'),
+        `grab_${Date.now()}_${path.basename(filePath)}`
+      )
+      fs.copyFileSync(filePath, tmpFilePath)
 
-    try {
-      const dbPath = path.join(app.getPath('userData'), 'pos.db')
-      return importGrabManual({ dbPath, filePath: tmpFilePath })
-    } finally {
-      fs.unlink(tmpFilePath, () => {})
+      try {
+        const dbPath = path.join(app.getPath('userData'), 'pos.db')
+        const result = importGrabManual({ dbPath, filePath: tmpFilePath })
+        totalInserted += result.inserted
+      } catch (err: any) {
+        messages.push(`Error with ${filePath}: ${err.message}`)
+      } finally {
+        fs.unlink(tmpFilePath, () => {})
+      }
+    }
+
+    return {
+      totalInserted,
+      message: 'Completed'
     }
   })
 
