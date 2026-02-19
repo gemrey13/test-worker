@@ -12,20 +12,30 @@ export type ReconcileFilters = {
   toDate?: string
   preset?: 'today'
 }
+/**
+ * Convert any date string or Date object to MM/DD/YYYY
+ */
+function formatToMMDDYYYY(date: string | Date): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0')
+  const dd = d.getDate().toString().padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${mm}/${dd}/${yyyy}`
+}
 
 /**
- * Utility to resolve preset dates
+ * Resolve preset or user-supplied date range in MM/DD/YYYY
  */
 function resolveDateRange(filters: ReconcileFilters) {
   if (filters.preset === 'today') {
     const today = new Date()
-    const iso = today.toISOString().slice(0, 10)
-    return { from: iso, to: iso }
+    const formatted = formatToMMDDYYYY(today)
+    return { from: formatted, to: formatted }
   }
 
   return {
-    from: filters.fromDate,
-    to: filters.toDate
+    from: filters.fromDate ? formatToMMDDYYYY(filters.fromDate) : undefined,
+    to: filters.toDate ? formatToMMDDYYYY(filters.toDate) : undefined
   }
 }
 
@@ -66,17 +76,27 @@ export function testReconciliation(filters: ReconcileFilters = {}) {
 
   // 🔹 Date filter
   if (from && to) {
-    posQuery += ` AND DATE(orddate) BETWEEN DATE(?) AND DATE(?)`
-    grabQuery += ` AND DATE(created_on) BETWEEN DATE(?) AND DATE(?)`
+    posQuery += ` AND orddate BETWEEN ? AND ?`
+    grabQuery += ` AND created_on BETWEEN ? AND ?`
 
     posParams.push(from, to)
     grabParams.push(from, to)
   }
 
-  // 🔹 Branch filter (Grab only)
+  // 🔹 Branch filter via mapping
   if (filters.branch) {
-    grabQuery += ` AND store_name = ?`
-    grabParams.push(filters.branch)
+    // Find mapping
+    const mapping = db
+      .prepare(`SELECT pos_name, grab_name FROM branch_mapping WHERE grab_name = ?`)
+      .get(filters.branch)
+
+    if (mapping) {
+      posQuery += ` AND branch_name = ?`
+      posParams.push(mapping.pos_name)
+
+      grabQuery += ` AND store_name = ?`
+      grabParams.push(mapping.grab_name)
+    }
   }
 
   const posRows = db.prepare(posQuery).all(posParams)
