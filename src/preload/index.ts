@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
 const api = {
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
@@ -10,9 +9,7 @@ const api = {
   importPOSZip: () => ipcRenderer.invoke('POS:import-zip')
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
