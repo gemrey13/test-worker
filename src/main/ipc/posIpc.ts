@@ -70,6 +70,6 @@ export function registerPosIpc() {
     console.log(`[Main] Import finished at ${endTime.toLocaleString()}`)
     console.log(`[Main] Total time: ${(endTime.getTime() - startTime.getTime()) / 1000}s`)
 
-    return { totalInserted }
+    return { totalInserted, message: 'Added POS file' }
   })
 }
