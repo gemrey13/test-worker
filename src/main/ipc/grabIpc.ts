@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -7,11 +7,22 @@ import creategrabWorkerWriter from '../worker/grabWriterWorker?nodeWorker'
 import { importGrabManual } from '../worker/importGrabManual'
 
 export function registerGrabIpc() {
-  ipcMain.handle('grab:importManual', async (_, buffer: Buffer) => {
-    if (!buffer || buffer.length === 0) throw new Error('No file data provided')
+  ipcMain.handle('grab:importManual', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Select Grab Excel file',
+      properties: ['openFile'],
+      filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }]
+    })
 
+    if (canceled || filePaths.length === 0) {
+      throw new Error('No file selected')
+    }
+
+    const filePath = filePaths[0]
+
+    // Optionally copy to temp folder if you need
     const tmpFilePath = path.join(app.getPath('temp'), `grab_${Date.now()}.xlsx`)
-    fs.writeFileSync(tmpFilePath, buffer)
+    fs.copyFileSync(filePath, tmpFilePath)
 
     try {
       const dbPath = path.join(app.getPath('userData'), 'pos.db')

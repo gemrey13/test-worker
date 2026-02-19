@@ -7,7 +7,7 @@ import createPosWorkerReader from '../worker/posReaderWorker?nodeWorker'
 import createPosWorkerWriter from '../worker/posWriterWorker?nodeWorker'
 
 export function registerPosIpc() {
-  ipcMain.handle('POS:import-zip', async () => {
+  ipcMain.handle('POS:importZip', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [{ name: 'Zip Files', extensions: ['zip'] }]

@@ -4,11 +4,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
-  startImportGrabManual: (arrayBuffer: ArrayBuffer) =>
-    ipcRenderer.invoke('grab:importManual', Buffer.from(arrayBuffer)),
-  importPOSZip: () => ipcRenderer.invoke('POS:import-zip')
+  importGrabManual: () => ipcRenderer.invoke('grab:importManual'),
+  importPOSZip: () => ipcRenderer.invoke('POS:importZip')
 }
-
 
 if (process.contextIsolated) {
   try {

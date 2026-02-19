@@ -6,7 +6,7 @@ declare global {
     api: {
       startImportGrab: () => Promise<any>
       runRecon: () => Promise<any>
-      startImportGrabManual: (buffer: any) => Promise<any>
+      importGrabManual: () => Promise<any>
       importPOSZip: () => Promise<any>
     }
   }

@@ -15,11 +15,23 @@ export default function App(): JSX.Element {
     }
   }
 
+  const handleImportGrabManual = async () => {
+    setStatus('Importing...')
+
+    try {
+      const result = await window.api.importGrabManual()
+      setStatus(`Done ✅ Inserted: ${result.totalInserted}`)
+    } catch (err: any) {
+      setStatus(`Error ❌ ${err.message}`)
+    }
+  }
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Electron Vite Node Worker</h1>
 
-      <button onClick={handleImport}>Import ZIP</button>
+      <button onClick={handleImport}>Import POS ZIP</button>
+      <button onClick={handleImportGrabManual}>Import GRAB ZIP</button>
 
       <p>Status: {status}</p>
     </div>
