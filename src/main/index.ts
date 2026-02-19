@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -12,6 +12,7 @@ import creategrabWorkerWriter from './worker/grabWriterWorker?nodeWorker'
 import os from 'os'
 import { testReconciliation } from './reconcile/test'
 import { importGrabManual } from './worker/importGrabManual'
+import unzipper from 'unzipper'
 
 function createWindow(): void {
   // Create the browser window.
@@ -133,27 +134,50 @@ app.whenReady().then(() => {
     return { totalInserted }
   })
 
-  ipcMain.handle('start-import', async () => {
-    const startTime = new Date()
-    console.log(`[Main] Import started at ${startTime.toLocaleString()}`)
+  ipcMain.handle('POS:import-zip', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Zip Files', extensions: ['zip'] }]
+    })
 
-    const rootFolder = 'C:\\pos-data'
+    if (canceled || filePaths.length === 0) {
+      throw new Error('No zip file selected')
+    }
+
+    const zipPath = filePaths[0]
+
+    if (!zipPath) throw new Error('No zip file provided')
+
+    const startTime = new Date()
+    console.log(`[Main] Import (ZIP) started at ${startTime.toLocaleString()}`)
+
+    // 🔹 Extract to temp folder
+    const extractDir = path.join(app.getPath('temp'), `pos_extract_${Date.now()}`)
+    fs.mkdirSync(extractDir, { recursive: true })
+
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(zipPath)
+        .pipe(unzipper.Extract({ path: extractDir }))
+        .on('close', resolve)
+        .on('error', reject)
+    })
+
+    console.log('[Main] Zip extracted to:', extractDir)
+
+    // 🔹 Use extracted folder as root
+    const rootFolder = extractDir
     const dbPath = path.join(app.getPath('userData'), 'pos.db')
+
     const allBranches = fs
       .readdirSync(rootFolder)
       .filter((f) => fs.statSync(path.join(rootFolder, f)).isDirectory())
 
-    // Dynamically use all CPU cores
     const numReaders = os.cpus().length
-    console.log(`[Main] Using ${numReaders} reader workers based on CPU cores`)
-
     const batchSize = 1000
 
-    // Split branches among readers
     const readerGroups: string[][] = Array.from({ length: numReaders }, () => [])
     allBranches.forEach((b, i) => readerGroups[i % numReaders].push(b))
 
-    // Start writer worker
     const writerWorker = createPosWorkerWriter({ workerData: { dbPath } })
     const writerPromise = new Promise<number>((resolve) => {
       writerWorker.on('message', (msg) => {
@@ -161,7 +185,6 @@ app.whenReady().then(() => {
       })
     })
 
-    // Start reader workers
     const readerPromises = readerGroups.map((group) => {
       const reader = createPosWorkerReader({
         workerData: { branches: group, rootFolder, batchSize }
@@ -174,6 +197,10 @@ app.whenReady().then(() => {
     writerWorker.postMessage({ done: true })
 
     const totalInserted = await writerPromise
+
+    // 🔹 Cleanup extracted files
+    fs.rmSync(extractDir, { recursive: true, force: true })
+
     const endTime = new Date()
     console.log(`[Main] Import finished at ${endTime.toLocaleString()}`)
     console.log(`[Main] Total time: ${(endTime.getTime() - startTime.getTime()) / 1000}s`)

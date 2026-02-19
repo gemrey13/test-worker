@@ -3,11 +3,11 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  startImport: () => ipcRenderer.invoke('start-import'),
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
   startImportGrabManual: (arrayBuffer: ArrayBuffer) =>
-    ipcRenderer.invoke('grab:importManual', Buffer.from(arrayBuffer))
+    ipcRenderer.invoke('grab:importManual', Buffer.from(arrayBuffer)),
+  importPOSZip: () => ipcRenderer.invoke('POS:import-zip')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
