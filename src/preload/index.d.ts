@@ -8,6 +8,9 @@ declare global {
       runRecon: () => Promise<any>
       importGrabManual: () => Promise<any>
       importPOSZip: () => Promise<any>
+      minimize: () => Promise<any>
+      maximize: () => Promise<any>
+      close: () => Promise<any>
     }
   }
 }

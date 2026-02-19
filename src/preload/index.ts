@@ -5,7 +5,11 @@ const api = {
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
   importGrabManual: () => ipcRenderer.invoke('grab:importManual'),
-  importPOSZip: () => ipcRenderer.invoke('POS:importZip')
+  importPOSZip: () => ipcRenderer.invoke('POS:importZip'),
+
+  minimize: () => ipcRenderer.send('window-minimize'),
+  maximize: () => ipcRenderer.send('window-maximize'),
+  close: () => ipcRenderer.send('window-close')
 }
 
 if (process.contextIsolated) {

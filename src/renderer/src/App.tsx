@@ -1,3 +1,4 @@
+import TestComponent from '@renderer/TestComponent'
 import { JSX, useState } from 'react'
 
 export default function App(): JSX.Element {
@@ -44,6 +45,9 @@ export default function App(): JSX.Element {
       </button>
 
       <p>Status: {status}</p>
+
+      <br />
+      <TestComponent />
     </div>
   )
 }

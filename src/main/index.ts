@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -11,6 +11,7 @@ function createWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
+    frame: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -46,6 +47,22 @@ app.whenReady().then(() => {
   })
 
   registerAllIpc()
+
+  ipcMain.on('window-minimize', (_) => {
+    const win = BrowserWindow.getFocusedWindow()
+    win?.minimize()
+  })
+
+  ipcMain.on('window-maximize', (_) => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win?.isMaximized()) win.unmaximize()
+    else win?.maximize()
+  })
+
+  ipcMain.on('window-close', (_) => {
+    const win = BrowserWindow.getFocusedWindow()
+    win?.close()
+  })
 
   createWindow()
 
