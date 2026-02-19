@@ -1,28 +1,34 @@
 import { JSX, useState } from 'react'
-// import * as XLSX from 'xlsx'
 
 export default function App(): JSX.Element {
   const [status, setStatus] = useState<string>('Idle')
+  const [loading, setLoading] = useState(false)
 
   const handleImport = async () => {
-    setStatus('Importing...')
+    setLoading(true)
+    setStatus('Importing POS ZIP...')
 
     try {
       const result = await window.api.importPOSZip()
-      setStatus(`Done ✅ Inserted: ${result.totalInserted}`)
+      setStatus(`Done ✅ Inserted: ${result.totalInserted} | ${result.message}`)
     } catch (err: any) {
       setStatus(`Error ❌ ${err.message}`)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleImportGrabManual = async () => {
-    setStatus('Importing...')
+    setLoading(true)
+    setStatus('Importing GRAB Excel...')
 
     try {
       const result = await window.api.importGrabManual()
-      setStatus(`Done ✅ Inserted: ${result.totalInserted}`)
+      setStatus(`Done ✅ Inserted: ${result.totalInserted} | ${result.message}`)
     } catch (err: any) {
       setStatus(`Error ❌ ${err.message}`)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -30,8 +36,12 @@ export default function App(): JSX.Element {
     <div style={{ padding: 20 }}>
       <h1>Electron Vite Node Worker</h1>
 
-      <button onClick={handleImport}>Import POS ZIP</button>
-      <button onClick={handleImportGrabManual}>Import GRAB ZIP</button>
+      <button onClick={handleImport} disabled={loading}>
+        Import POS ZIP
+      </button>
+      <button onClick={handleImportGrabManual} disabled={loading}>
+        Import GRAB Excel
+      </button>
 
       <p>Status: {status}</p>
     </div>

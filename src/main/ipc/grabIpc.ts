@@ -15,7 +15,7 @@ export function registerGrabIpc() {
     })
 
     if (canceled || filePaths.length === 0) {
-      throw new Error('No file selected')
+      return { totalInserted: 0, message: 'No GRAB file selected' }
     }
 
     const filePath = filePaths[0]

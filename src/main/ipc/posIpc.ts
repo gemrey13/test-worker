@@ -14,7 +14,7 @@ export function registerPosIpc() {
     })
 
     if (canceled || filePaths.length === 0) {
-      throw new Error('No zip file selected')
+      return { totalInserted: 0, message: 'No POS file selected' }
     }
 
     const zipPath = filePaths[0]
