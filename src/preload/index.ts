@@ -10,6 +10,9 @@ const api = {
   runRecon: () => ipcRenderer.invoke('run-reconciliation'),
   importGrabManual: () => ipcRenderer.invoke('grab:importManual'),
   importPOSZip: () => ipcRenderer.invoke('POS:importZip'),
+
+  run: (filters?: any) => ipcRenderer.invoke('run', filters),
+  getBranches: () => ipcRenderer.invoke('get-branches')
 }
 
 if (process.contextIsolated) {
