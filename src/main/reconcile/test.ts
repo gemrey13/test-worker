@@ -8,7 +8,7 @@ const db = new Database(dbPath)
 
 export type ReconcileFilters = {
   branch?: string // grab_name
-  fromDate?: string // ISO YYYY-MM-DD
+  fromDate?: string
   toDate?: string
   preset?: 'today'
 }
