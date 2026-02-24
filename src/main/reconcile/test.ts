@@ -75,12 +75,28 @@ export function testReconciliation(filters: ReconcileFilters = {}) {
   const grabParams: any[] = []
 
   // 🔹 Date filter
+  // 🔹 Date filter
   if (from && to) {
+    // range
     posQuery += ` AND orddate BETWEEN ? AND ?`
     grabQuery += ` AND created_on BETWEEN ? AND ?`
 
     posParams.push(from, to)
     grabParams.push(from, to)
+  } else if (from) {
+    // start only
+    posQuery += ` AND orddate >= ?`
+    grabQuery += ` AND created_on >= ?`
+
+    posParams.push(from)
+    grabParams.push(from)
+  } else if (to) {
+    // end only
+    posQuery += ` AND orddate <= ?`
+    grabQuery += ` AND created_on <= ?`
+
+    posParams.push(to)
+    grabParams.push(to)
   }
 
   // 🔹 Branch filter via mapping
