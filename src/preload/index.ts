@@ -7,11 +7,10 @@ const api = {
   // close: () => ipcRenderer.send('window-close')
 
   startImportGrab: () => ipcRenderer.invoke('start-import-grab'),
-  runRecon: () => ipcRenderer.invoke('run-reconciliation'),
   importGrabManual: () => ipcRenderer.invoke('grab:importManual'),
   importPOSZip: () => ipcRenderer.invoke('POS:importZip'),
 
-  run: (filters?: any) => ipcRenderer.invoke('run', filters),
+  reconGrabPos: (filters?: any) => ipcRenderer.invoke('recon:grab-pos', filters),
   getBranches: () => ipcRenderer.invoke('get-branches')
 }
 

@@ -34,7 +34,7 @@ const TestComponent = () => {
     setLoading(true)
 
     try {
-      const results = await window.api.run(filters)
+      const results = await window.api.reconGrabPos(filters)
 
       if (!results || results.length === 0) {
         alert('No reconciliation results found.')
@@ -64,7 +64,7 @@ const TestComponent = () => {
   const runToday = async () => {
     setLoading(true)
     try {
-      const data = await window.api.run({ preset: 'today', branch: filters.branch })
+      const data = await window.api.reconGrabPos({ preset: 'today', branch: filters.branch })
       setResults(data)
     } finally {
       setLoading(false)

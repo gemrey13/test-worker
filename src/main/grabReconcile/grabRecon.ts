@@ -2,16 +2,11 @@ import Database from 'better-sqlite3'
 import { reconcileAndSaveInline } from './matchingEngine'
 import { app } from 'electron'
 import { join } from 'path'
+import { ReconcileFilters } from './grabPOSType'
 
 const dbPath = join(app.getPath('userData'), 'pos.db')
 const db = new Database(dbPath)
 
-export type ReconcileFilters = {
-  branch?: string // grab_name
-  fromDate?: string
-  toDate?: string
-  preset?: 'today'
-}
 /**
  * Convert any date string or Date object to MM/DD/YYYY
  */
@@ -56,7 +51,7 @@ export function getBranchOptions() {
 /**
  * Main test reconciliation with filters
  */
-export function testReconciliation(filters: ReconcileFilters = {}) {
+export function grabPosReconciliation(filters: ReconcileFilters = {}) {
   const { from, to } = resolveDateRange(filters)
 
   let posQuery = `
@@ -122,7 +117,6 @@ export function testReconciliation(filters: ReconcileFilters = {}) {
   console.log('POS rows:', posRows.length)
   console.log('Grab rows:', grabRows.length)
 
-  // const results = reconcilePOSvsGrab(posRows, grabRows, 0.01)
   const results = reconcileAndSaveInline(posRows, grabRows, 0.01)
 
   console.log('Results:', results.length)

@@ -9,11 +9,10 @@ declare global {
       // close: () => Promise<any>
 
       startImportGrab: () => Promise<any>
-      runRecon: () => Promise<any>
       importGrabManual: () => Promise<any>
       importPOSZip: () => Promise<any>
 
-      run: (filters?: any) => Promise<any>
+      reconGrabPos: (filters?: any) => Promise<any>
       getBranches: () => Promise<string[]>
     }
   }
