@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { GroupedReconcileResults, MatchResult } from './grabPOSType'
+import { GroupedReconcileResults, MatchResult, MatchStatus } from './grabPOSType'
 
 export function normalizeDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US')
@@ -73,12 +73,16 @@ export function formatToMMDDYYYY(date: string | Date): string {
   return `${mm}/${dd}/${yyyy}`
 }
 
-export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReconcileResults {
-  const map = new Map<string, { branch: string; date: string; items: MatchResult[] }>()
+export function groupResultsByBranchAndDate(
+  results: MatchResult[]
+): GroupedReconcileResults {
+  const map = new Map<
+    string,
+    { branch: string; date: string; items: MatchResult[] }
+  >()
 
   for (const r of results) {
     const branch = r.grab?.store_name ?? r.pos?.branch_name ?? 'Unknown Branch'
-
     const date = r.grab?.created_on ?? r.pos?.orddate ?? 'Unknown Date'
 
     const key = `${branch}|${date}`
@@ -90,5 +94,23 @@ export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReco
     map.get(key)!.items.push(r)
   }
 
-  return Array.from(map.values())
+  // 👉 compute group status
+  return Array.from(map.values()).map(group => {
+    const statuses = group.items.map(i => i.status)
+
+    let status: MatchStatus = 'exact_match'
+
+    if (statuses.includes('discrepancy')) {
+      status = 'discrepancy'
+    } else if (statuses.includes('unmatched')) {
+      status = 'unmatched'
+    } else if (statuses.includes('tolerance_match')) {
+      status = 'tolerance_match'
+    }
+
+    return {
+      ...group,
+      status
+    }
+  })
 }

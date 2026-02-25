@@ -17,5 +17,6 @@ export type ReconcileFilters = {
 export type GroupedReconcileResults = {
   branch: string
   date: string
+  status: MatchStatus
   items: MatchResult[]
 }[]
