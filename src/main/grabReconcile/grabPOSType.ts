@@ -18,5 +18,9 @@ export type GroupedReconcileResults = {
   branch: string
   date: string
   status: MatchStatus
+  issueCount: number
+  matchRate: number
+  totalCount: number
+  exactCount: number
   items: MatchResult[]
 }[]
