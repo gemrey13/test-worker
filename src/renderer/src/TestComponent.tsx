@@ -22,7 +22,7 @@ const TestComponent = () => {
 
   // 🔹 Load branch options
   useEffect(() => {
-    window.api.getBranches().then(setBranches)
+    window.api.getGrabBranches().then(setBranches)
   }, [])
 
   // 🔹 Handlers

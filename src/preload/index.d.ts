@@ -13,7 +13,7 @@ declare global {
       importPOSZip: () => Promise<any>
 
       reconGrabPos: (filters?: any) => Promise<any>
-      getBranches: () => Promise<string[]>
+      getGrabBranches: () => Promise<string[]>
     }
   }
 }

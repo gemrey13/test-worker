@@ -3,20 +3,10 @@ import { reconcileAndSaveInline } from './matchingEngine'
 import { app } from 'electron'
 import { join } from 'path'
 import { ReconcileFilters } from './grabPOSType'
+import { formatToMMDDYYYY } from './grabPOSHelper'
 
 const dbPath = join(app.getPath('userData'), 'pos.db')
 const db = new Database(dbPath)
-
-/**
- * Convert any date string or Date object to MM/DD/YYYY
- */
-function formatToMMDDYYYY(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  const mm = (d.getMonth() + 1).toString().padStart(2, '0')
-  const dd = d.getDate().toString().padStart(2, '0')
-  const yyyy = d.getFullYear()
-  return `${mm}/${dd}/${yyyy}`
-}
 
 /**
  * Resolve preset or user-supplied date range in MM/DD/YYYY
@@ -34,7 +24,7 @@ function resolveDateRange(filters: ReconcileFilters) {
   }
 }
 
-export function getBranchOptions() {
+export function getGrabBranchOptions() {
   return db
     .prepare(
       `

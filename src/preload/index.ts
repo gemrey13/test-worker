@@ -11,7 +11,7 @@ const api = {
   importPOSZip: () => ipcRenderer.invoke('POS:importZip'),
 
   reconGrabPos: (filters?: any) => ipcRenderer.invoke('recon:grab-pos', filters),
-  getBranches: () => ipcRenderer.invoke('get-branches')
+  getGrabBranches: () => ipcRenderer.invoke('get-grab-branches')
 }
 
 if (process.contextIsolated) {
