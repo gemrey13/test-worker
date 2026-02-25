@@ -41,6 +41,7 @@ const TestComponent = () => {
         setRows([])
         return
       }
+      console.log(results)
 
       const mapped = results.map((r: any) => ({
         pos_amount: r.pos?.grschrg ?? '',

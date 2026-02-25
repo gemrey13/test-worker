@@ -3,7 +3,7 @@ import { reconcileAndSaveInline } from './matchingEngine'
 import { app } from 'electron'
 import { join } from 'path'
 import { ReconcileFilters } from './grabPOSType'
-import { formatToMMDDYYYY } from './grabPOSHelper'
+import { formatToMMDDYYYY, groupResultsByBranchAndDate } from './grabPOSHelper'
 
 const dbPath = join(app.getPath('userData'), 'pos.db')
 const db = new Database(dbPath)
@@ -60,7 +60,6 @@ export function grabPosReconciliation(filters: ReconcileFilters = {}) {
   const grabParams: any[] = []
 
   // 🔹 Date filter
-  // 🔹 Date filter
   if (from && to) {
     // range
     posQuery += ` AND orddate BETWEEN ? AND ?`
@@ -111,5 +110,5 @@ export function grabPosReconciliation(filters: ReconcileFilters = {}) {
 
   console.log('Results:', results.length)
 
-  return results
+  return groupResultsByBranchAndDate(results)
 }

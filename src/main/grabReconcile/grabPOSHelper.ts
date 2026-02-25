@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import { GroupedReconcileResults, MatchResult } from './grabPOSType'
 
 export function normalizeDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US')
@@ -41,7 +42,6 @@ export function normalizeCusno(cusno?: string): string | null {
     .trim()
 }
 
-
 /**
  * Extract possible tokens from Grab for last-pass matching
  */
@@ -71,4 +71,24 @@ export function formatToMMDDYYYY(date: string | Date): string {
   const dd = d.getDate().toString().padStart(2, '0')
   const yyyy = d.getFullYear()
   return `${mm}/${dd}/${yyyy}`
+}
+
+export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReconcileResults {
+  const map = new Map<string, { branch: string; date: string; items: MatchResult[] }>()
+
+  for (const r of results) {
+    const branch = r.grab?.store_name ?? r.pos?.branch_name ?? 'Unknown Branch'
+
+    const date = r.grab?.created_on ?? r.pos?.orddate ?? 'Unknown Date'
+
+    const key = `${branch}|${date}`
+
+    if (!map.has(key)) {
+      map.set(key, { branch, date, items: [] })
+    }
+
+    map.get(key)!.items.push(r)
+  }
+
+  return Array.from(map.values())
 }

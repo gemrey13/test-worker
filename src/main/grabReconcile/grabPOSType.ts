@@ -13,3 +13,9 @@ export type ReconcileFilters = {
   toDate?: string
   preset?: 'today'
 }
+
+export type GroupedReconcileResults = {
+  branch: string
+  date: string
+  items: MatchResult[]
+}[]
