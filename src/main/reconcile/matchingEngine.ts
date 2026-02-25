@@ -1,77 +1,75 @@
-import Database from "better-sqlite3";
-import { app } from "electron";
-import path from "path";
+import Database from 'better-sqlite3'
+import { app } from 'electron'
+import path from 'path'
 
-type MatchStatus =
-  | "exact_match"
-  | "tolerance_match"
-  | "discrepancy"
-  | "unmatched";
+type MatchStatus = 'exact_match' | 'tolerance_match' | 'discrepancy' | 'unmatched'
 
 type MatchResult = {
-  pos?: any;
-  grab?: any;
-  variance: number;
-  status: MatchStatus;
-};
+  pos?: any
+  grab?: any
+  variance: number
+  status: MatchStatus
+}
 
 function normalizeDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US");
+  return new Date(dateStr).toLocaleDateString('en-US')
 }
 
 function groupBy<T>(rows: T[], keyGetter: (row: T) => string) {
-  const map = new Map<string, T[]>();
+  const map = new Map<string, T[]>()
   for (const row of rows) {
-    const key = keyGetter(row);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(row);
+    const key = keyGetter(row)
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(row)
   }
-  return map;
+  return map
 }
 
 /**
  * Normalize POS cusno for last-pass ID matching
  */
 function normalizeCusno(cusno?: string): string | null {
-  if (!cusno) return null;
-  return cusno.toUpperCase().replace(/^GF?-?/, "").trim();
+  if (!cusno) return null
+  return cusno
+    .toUpperCase()
+    .replace(/^GF?-?/, '')
+    .trim()
 }
 
 /**
  * Extract possible tokens from Grab for last-pass matching
  */
 function extractGrabToken(grab: any): string[] {
-  const tokens: string[] = [];
+  const tokens: string[] = []
 
   if (grab.short_order_id) {
-    tokens.push(grab.short_order_id.toUpperCase().trim());
+    tokens.push(grab.short_order_id.toUpperCase().trim())
   }
 
   if (grab.booking_id) {
-    const cleaned = grab.booking_id.toUpperCase().trim();
-    tokens.push(cleaned.slice(-4));
-    tokens.push(cleaned.slice(-5));
-    tokens.push(cleaned.slice(-6));
+    const cleaned = grab.booking_id.toUpperCase().trim()
+    tokens.push(cleaned.slice(-4))
+    tokens.push(cleaned.slice(-5))
+    tokens.push(cleaned.slice(-6))
   }
 
-  return tokens;
+  return tokens
 }
 
 /**
  * Fetch branch mappings from the database and return a lookup function
  */
 export function createBranchMapper(db: Database.Database) {
-  const rows: { pos_code: string; pos_name: string; grab_name: string | null }[] =
-    db.prepare("SELECT pos_code, pos_name, grab_name FROM branch_mapping").all();
+  const rows: { pos_code: string; pos_name: string; grab_name: string | null }[] = db
+    .prepare('SELECT pos_code, pos_name, grab_name FROM branch_mapping')
+    .all()
 
   return (posBranch: string): string | null => {
     const mapping = rows.find(
-      (b) =>
-        b.pos_name.toLowerCase().includes(posBranch.toLowerCase()) ||
-        b.pos_code === posBranch
-    );
-    return mapping?.grab_name ?? null;
-  };
+      (b) => b.pos_name.toLowerCase().includes(posBranch.toLowerCase()) || b.pos_code === posBranch
+    )
+    return mapping?.grab_name ?? null
+  }
 }
 
 /**
@@ -82,109 +80,109 @@ export function reconcilePOSvsGrab(
   grabRows: any[],
   tolerance: number = 0.01
 ): MatchResult[] {
-  const results: MatchResult[] = [];
+  const results: MatchResult[] = []
 
-  const dbPath = path.join(app.getPath("userData"), "pos.db");
-  const db = new Database(dbPath); // ← open DB
-  const mapPosToGrabStore = createBranchMapper(db);
+  const dbPath = path.join(app.getPath('userData'), 'pos.db')
+  const db = new Database(dbPath) // ← open DB
+  const mapPosToGrabStore = createBranchMapper(db)
 
   // Group POS by normalized branch + date
   const posByBranchDate = groupBy(posRows, (p) => {
-    const grabStore = mapPosToGrabStore(p.branch_name) ?? p.branch_name;
-    return `${grabStore}::${normalizeDate(p.orddate)}`;
-  });
+    const grabStore = mapPosToGrabStore(p.branch_name) ?? p.branch_name
+    return `${grabStore}::${normalizeDate(p.orddate)}`
+  })
 
   // Group Grab by store_name + date
   const grabByStoreDate = groupBy(grabRows, (g) => {
-    return `${g.store_name}::${normalizeDate(g.created_on)}`;
-  });
+    return `${g.store_name}::${normalizeDate(g.created_on)}`
+  })
 
   for (const [key, posGroup] of posByBranchDate.entries()) {
-    const grabGroup = grabByStoreDate.get(key) || [];
+    const grabGroup = grabByStoreDate.get(key) || []
 
-    const usedGrab = new Set<number>();
-    const unmatchedPos: any[] = [];
-    const unmatchedGrab: any[] = [];
+    const usedGrab = new Set<number>()
+    const unmatchedPos: any[] = []
+    const unmatchedGrab: any[] = []
 
     // FIRST PASS: branch + date + amount/tolerance
-    posGroup.sort((a, b) => Number(b.grschrg) - Number(a.grschrg));
-    grabGroup.sort((a, b) => Number(b.amount) - Number(a.amount));
+    posGroup.sort((a, b) => Number(b.grschrg) - Number(a.grschrg))
+    grabGroup.sort((a, b) => Number(b.amount) - Number(a.amount))
 
     for (const pos of posGroup) {
-      let matched = false;
+      let matched = false
 
       for (const grab of grabGroup) {
-        if (usedGrab.has(grab.id)) continue;
+        if (usedGrab.has(grab.id)) continue
 
-        const variance = Number(pos.grschrg) - Number(grab.amount);
-        const absVariance = Math.abs(variance);
+        const variance = Number(pos.grschrg) - Number(grab.amount)
+        const absVariance = Math.abs(variance)
 
         if (variance === 0) {
-          results.push({ pos, grab, variance: 0, status: "exact_match" });
-          usedGrab.add(grab.id);
-          matched = true;
-          break;
+          results.push({ pos, grab, variance: 0, status: 'exact_match' })
+          usedGrab.add(grab.id)
+          matched = true
+          break
         }
 
         if (absVariance <= tolerance) {
-          results.push({ pos, grab, variance, status: "tolerance_match" });
-          usedGrab.add(grab.id);
-          matched = true;
-          break;
+          results.push({ pos, grab, variance, status: 'tolerance_match' })
+          usedGrab.add(grab.id)
+          matched = true
+          break
         }
       }
 
-      if (!matched) unmatchedPos.push(pos);
+      if (!matched) unmatchedPos.push(pos)
     }
 
     for (const grab of grabGroup) {
-      if (!usedGrab.has(grab.id)) unmatchedGrab.push(grab);
+      if (!usedGrab.has(grab.id)) unmatchedGrab.push(grab)
     }
 
     // LAST PASS: POS cusno vs Grab short_order_id / booking_id
-    const remainingGrabByToken = new Map<string, any[]>();
+    const remainingGrabByToken = new Map<string, any[]>()
 
     for (const grab of unmatchedGrab) {
-      const tokens = extractGrabToken(grab);
+      const tokens = extractGrabToken(grab)
       for (const token of tokens) {
         if (!remainingGrabByToken.has(token)) {
-          remainingGrabByToken.set(token, []);
+          remainingGrabByToken.set(token, [])
         }
-        remainingGrabByToken.get(token)!.push(grab);
+        remainingGrabByToken.get(token)!.push(grab)
       }
     }
 
     for (const pos of unmatchedPos) {
-      const cusToken = normalizeCusno(pos.cusno);
+      const cusToken = normalizeCusno(pos.cusno)
       if (!cusToken) {
         results.push({
           pos,
           grab: undefined,
           variance: Number(pos.grschrg),
-          status: "unmatched",
-        });
-        continue;
+          status: 'unmatched'
+        })
+        continue
       }
 
-      const possibleGrabs = remainingGrabByToken.get(cusToken);
+      const possibleGrabs = remainingGrabByToken.get(cusToken)
       if (possibleGrabs && possibleGrabs.length > 0) {
-        const grab = possibleGrabs.shift()!;
-        usedGrab.add(grab.id);
+        const grab = possibleGrabs.shift()!
+        usedGrab.add(grab.id)
 
-        const variance = Number(pos.grschrg) - Number(grab.amount);
+        const variance = Number(pos.grschrg) - Number(grab.amount)
         results.push({
           pos,
           grab,
           variance,
-          status: variance === 0 ? "exact_match" : "tolerance_match",
-        });
+          status: variance === 0 ? 'exact_match' : 'tolerance_match'
+        })
       } else {
         results.push({
           pos,
           grab: undefined,
           variance: Number(pos.grschrg),
-          status: "unmatched",
-        });
+          status: 'unmatched'
+        })
       }
     }
 
@@ -195,11 +193,64 @@ export function reconcilePOSvsGrab(
           pos: undefined,
           grab,
           variance: -Number(grab.amount),
-          status: "unmatched",
-        });
+          status: 'unmatched'
+        })
       }
     }
   }
 
-  return results;
+  return results
+}
+
+function buildNotes(r: MatchResult) {
+  if (r.status === 'exact_match') return 'Amounts matched exactly'
+  if (r.status === 'tolerance_match') return `Within tolerance. Variance: ${r.variance.toFixed(2)}`
+  if (!r.pos) return 'Missing in POS'
+  if (!r.grab) return 'Missing in Grab'
+  return 'Amount discrepancy'
+}
+
+export function reconcileAndSaveInline(posRows: any[], grabRows: any[], tolerance = 0.01) {
+  const dbPath = path.join(app.getPath('userData'), 'pos.db')
+  const db = new Database(dbPath)
+
+  const results = reconcilePOSvsGrab(posRows, grabRows, tolerance)
+
+  const updatePos = db.prepare(`
+    UPDATE pos_transactions
+    SET recon_status = ?,
+        recon_grab_id = ?,
+        recon_variance = ?,
+        recon_notes = ?,
+        recon_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `)
+
+  const updateGrab = db.prepare(`
+    UPDATE grab_transactions
+    SET recon_status = ?,
+        recon_pos_id = ?,
+        recon_variance = ?,
+        recon_notes = ?,
+        recon_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `)
+
+  const tx = db.transaction(() => {
+    for (const r of results) {
+      const notes = buildNotes(r)
+
+      if (r.pos) {
+        updatePos.run(r.status, r.grab?.id ?? null, r.variance, notes, r.pos.id)
+      }
+
+      if (r.grab) {
+        updateGrab.run(r.status, r.pos?.id ?? null, r.variance, notes, r.grab.id)
+      }
+    }
+  })
+
+  tx()
+
+  return results
 }

@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { reconcilePOSvsGrab } from './matchingEngine'
+import { reconcileAndSaveInline } from './matchingEngine'
 import { app } from 'electron'
 import { join } from 'path'
 
@@ -122,7 +122,8 @@ export function testReconciliation(filters: ReconcileFilters = {}) {
   console.log('POS rows:', posRows.length)
   console.log('Grab rows:', grabRows.length)
 
-  const results = reconcilePOSvsGrab(posRows, grabRows, 0.01)
+  // const results = reconcilePOSvsGrab(posRows, grabRows, 0.01)
+  const results = reconcileAndSaveInline(posRows, grabRows, 0.01)
 
   console.log('Results:', results.length)
 

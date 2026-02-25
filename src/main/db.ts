@@ -82,6 +82,14 @@ export function initDatabase() {
       remarks TEXT,
       filler1 TEXT,
       filler2 TEXT,
+
+      -- 🔹 Reconciliation fields
+      recon_status TEXT,
+      recon_grab_id INTEGER,
+      recon_variance REAL,
+      recon_notes TEXT,
+      recon_at TEXT,
+      
       UNIQUE(branch, cslipno)
     );
 
@@ -148,7 +156,14 @@ export function initDatabase() {
       incident_alias TEXT,
       customer_refund_item TEXT,
       appeal_link TEXT,
-      appeal_status TEXT
+      appeal_status TEXT,
+
+      -- 🔹 Reconciliation fields
+      recon_status TEXT,
+      recon_pos_id INTEGER,
+      recon_variance REAL,
+      recon_notes TEXT,
+      recon_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS branch_mapping (
