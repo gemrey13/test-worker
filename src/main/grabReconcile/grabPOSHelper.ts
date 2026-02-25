@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import { GroupedReconcileResults, MatchResult, MatchStatus } from './grabPOSType'
+import { branchMappings } from '../branches'
 
 export function normalizeDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US')
@@ -77,7 +78,14 @@ export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReco
   const map = new Map<string, { branch: string; date: string; items: MatchResult[] }>()
 
   for (const r of results) {
-    const branch = r.grab?.store_name ?? r.pos?.branch_name ?? 'Unknown Branch'
+    // Normalize branch using branchMappings
+    let rawBranch = r.grab?.store_name ?? r.pos?.branch_name ?? 'Unknown Branch'
+
+    const mapping = branchMappings.find(
+      (b) => b.posName === r.pos?.branch_name || b.grabName === r.grab?.store_name
+    )
+
+    const branch = mapping?.grabName ?? rawBranch
 
     const date = r.grab?.created_on ?? r.pos?.orddate ?? 'Unknown Date'
 
@@ -92,17 +100,12 @@ export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReco
 
   return Array.from(map.values()).map((group) => {
     const totalCount = group.items.length
-
     const exactCount = group.items.filter((i) => i.status === 'exact_match').length
-
     const issueCount = totalCount - exactCount
 
-    // 🔹 match rate (0–100)
     const matchRate = totalCount === 0 ? 0 : Number(((exactCount / totalCount) * 100).toFixed(2))
 
-    // 🔹 group status priority
     let status: MatchStatus = 'exact_match'
-
     if (group.items.some((i) => i.status === 'discrepancy')) {
       status = 'discrepancy'
     } else if (group.items.some((i) => i.status === 'unmatched')) {
