@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { GroupedReconcileResults, MatchResult, MatchStatus } from './grabPOSType'
+import { GroupedReconcileResults, MatchResult } from './grabPOSType'
 import { branchMappings } from '../branches'
 
 export function normalizeDate(dateStr: string) {
@@ -105,18 +105,8 @@ export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReco
 
     const matchRate = totalCount === 0 ? 0 : Number(((exactCount / totalCount) * 100).toFixed(2))
 
-    let status: MatchStatus = 'exact_match'
-    if (group.items.some((i) => i.status === 'discrepancy')) {
-      status = 'discrepancy'
-    } else if (group.items.some((i) => i.status === 'unmatched')) {
-      status = 'unmatched'
-    } else if (group.items.some((i) => i.status === 'tolerance_match')) {
-      status = 'tolerance_match'
-    }
-
     return {
       ...group,
-      status,
       issueCount,
       matchRate,
       totalCount,

@@ -1,4 +1,4 @@
-export type MatchStatus = 'exact_match' | 'tolerance_match' | 'discrepancy' | 'unmatched'
+export type MatchStatus = 'exact_match' | 'tolerance_match' | 'discrepancy' | 'unmatched' | 'chargeback_match'
 
 export type MatchResult = {
   pos?: any
@@ -17,7 +17,6 @@ export type ReconcileFilters = {
 export type GroupedReconcileResults = {
   branch: string
   date: string
-  status: MatchStatus
   issueCount: number
   matchRate: number
   totalCount: number

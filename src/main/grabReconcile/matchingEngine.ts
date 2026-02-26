@@ -2,7 +2,13 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import path from 'path'
 import { MatchResult } from './grabPOSType'
-import { createBranchMapper, extractGrabToken, groupBy, normalizeCusno, normalizeDate } from './grabPOSHelper'
+import {
+  createBranchMapper,
+  extractGrabToken,
+  groupBy,
+  normalizeCusno,
+  normalizeDate
+} from './grabPOSHelper'
 
 /**
  * Reconcile POS vs Grab transactions using branch_name/store_name, amount, and date
@@ -131,11 +137,56 @@ export function reconcilePOSvsGrab(
     }
   }
 
+  // --- FINAL PASS: CROSS-DATE AUTO-CHARGEBACK MATCHING ---
+  const unmatchedChargebacks = results.filter(
+    (r) => r.status === 'unmatched' && r.grab?.order_type === 'Auto-Chargeback'
+  )
+  const availableUnmatchedPos = results.filter((r) => r.status === 'unmatched' && r.pos)
+
+  for (const cbResult of unmatchedChargebacks) {
+    const grab = cbResult.grab
+    const grabDate = new Date(grab.created_on)
+    const absoluteGrabAmount = Math.abs(Number(grab.amount))
+
+    const matchedPosIndex = availableUnmatchedPos.findIndex((pResult) => {
+      const mappedBranch = mapPosToGrabStore(pResult.pos.branch_name) ?? pResult.pos.branch_name
+      const posDate = new Date(pResult.pos.orddate)
+
+      const isSameBranch = mappedBranch === grab.store_name
+      const isSameMonth =
+        posDate.getMonth() === grabDate.getMonth() &&
+        posDate.getFullYear() === grabDate.getFullYear()
+      const isAmountMatch = Math.abs(Number(pResult.pos.grschrg) - absoluteGrabAmount) <= tolerance
+
+      return isSameBranch && isSameMonth && isAmountMatch
+    })
+
+    if (matchedPosIndex !== -1) {
+      // 1. Get the POS result object
+      const pResult = availableUnmatchedPos.splice(matchedPosIndex, 1)[0]
+
+      // 2. Link the POS data to the Grab Chargeback row
+      cbResult.pos = pResult.pos
+      cbResult.status = 'chargeback_match'
+      cbResult.variance = Number(pResult.pos.grschrg) - absoluteGrabAmount
+
+      // 3. IMPORTANT: Remove the original "Missing in Grab" row from the main results array
+      // This stops it from appearing as "unmatched" on 01/20/2026
+      const originalPosIndexInResults = results.indexOf(pResult)
+      if (originalPosIndexInResults > -1) {
+        results.splice(originalPosIndexInResults, 1)
+      }
+    }
+  }
+
   return results
 }
 
 function buildNotes(r: MatchResult) {
   if (r.status === 'exact_match') return 'Amounts matched exactly'
+  if (r.status === 'chargeback_match') {
+    return `Auto-Chargeback linked to POS (${normalizeDate(r.pos!.orddate)})`
+  }
   if (r.status === 'tolerance_match') return `Within tolerance. Variance: ${r.variance.toFixed(2)}`
   if (!r.pos) return 'Missing in POS'
   if (!r.grab) return 'Missing in Grab'
