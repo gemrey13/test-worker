@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { GroupedReconcileResults, MatchResult } from './grabPOSType'
+import { MatchResult } from './grabPOSType'
 import { branchMappings } from '../branches'
 
 export function normalizeDate(dateStr: string) {
@@ -74,27 +74,21 @@ export function formatToMMDDYYYY(date: string | Date): string {
   return `${mm}/${dd}/${yyyy}`
 }
 
-export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReconcileResults {
+export function groupResultsByBranchAndDate(results: MatchResult[]) {
   const map = new Map<string, { branch: string; date: string; items: MatchResult[] }>()
 
   for (const r of results) {
-    // Normalize branch using branchMappings
     let rawBranch = r.grab?.store_name ?? r.pos?.branch_name ?? 'Unknown Branch'
 
     const mapping = branchMappings.find(
       (b) => b.posName === r.pos?.branch_name || b.grabName === r.grab?.store_name
     )
-
     const branch = mapping?.grabName ?? rawBranch
-
     const date = r.grab?.created_on ?? r.pos?.orddate ?? 'Unknown Date'
 
     const key = `${branch}|${date}`
 
-    if (!map.has(key)) {
-      map.set(key, { branch, date, items: [] })
-    }
-
+    if (!map.has(key)) map.set(key, { branch, date, items: [] })
     map.get(key)!.items.push(r)
   }
 
@@ -103,14 +97,35 @@ export function groupResultsByBranchAndDate(results: MatchResult[]): GroupedReco
     const exactCount = group.items.filter((i) => i.status === 'exact_match').length
     const issueCount = totalCount - exactCount
 
+    // --- Totals ---
+    const totalGrabAmount = group.items
+      .filter((r) => r.status === 'exact_match')
+      .reduce((sum, r) => sum + (r.grab ? Number(r.grab.amount) : 0), 0)
+    const netGrabSales = group.items
+      .filter((r) => r.status === 'exact_match')
+      .reduce((sum, r) => sum + (r.grab ? Number(r.grab.net_sales) : 0), 0)
+    const totalPayout = Number(
+      group.items
+        .filter((r) => r.status === 'exact_match')
+        .reduce((sum, r) => sum + (r.grab ? Number(r.grab.total) : 0), 0)
+        .toFixed(2)
+    )
+    const totalPOSAmount = group.items
+      .filter((r) => r.status === 'exact_match')
+      .reduce((sum, r) => sum + (r.pos ? Number(r.pos.grschrg) : 0), 0)
+
     const matchRate = totalCount === 0 ? 0 : Number(((exactCount / totalCount) * 100).toFixed(2))
 
     return {
       ...group,
+      totalCount,
+      exactCount,
       issueCount,
       matchRate,
-      totalCount,
-      exactCount
+      totalGrabAmount,
+      netGrabSales,
+      totalPayout,
+      totalPOSAmount
     }
   })
 }
